@@ -379,9 +379,16 @@ impl VSPreviewer {
 
                         // Update texture on render done
                         if let Some(ref mut tex) = *tex_mutex {
-                            tex.set(colorimage);
+                            tex.set(
+                                colorimage,
+                                egui::TextureFilter::from(&self.state.texture_filter),
+                            );
                         } else {
-                            *tex_mutex = Some(ctx.load_texture("frame", colorimage));
+                            *tex_mutex = Some(ctx.load_texture(
+                                "frame",
+                                colorimage,
+                                egui::TextureFilter::from(&self.state.texture_filter),
+                            ));
                         }
 
                         // Update last output once the new frame is rendered
