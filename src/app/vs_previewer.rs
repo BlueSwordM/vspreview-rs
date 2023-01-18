@@ -2,8 +2,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::{anyhow, bail, Result};
-use eframe::egui;
 use eframe::egui::Key;
+use eframe::egui::{self, TextureOptions};
 use fast_image_resize as fir;
 use image::DynamicImage;
 use parking_lot::{Mutex, RwLock};
@@ -62,7 +62,7 @@ impl VSPreviewer {
         let mut img = orig.clone();
 
         let zoom_factor = state.zoom_factor;
-        let (mut w, mut h) = (src_w as f32, src_h as f32);
+        let (mut w, mut h) = (src_w, src_h);
 
         // Unzoom first and foremost
         if zoom_factor < 1.0 && !state.upscale_to_window {
@@ -377,18 +377,16 @@ impl VSPreviewer {
                         // Convert to ColorImage on texture change
                         let colorimage = image_to_colorimage(final_image, &self.state, &transforms);
 
+                        let tex_filter = egui::TextureFilter::from(&self.state.texture_filter);
+                        let tex_opts = TextureOptions {
+                            magnification: tex_filter,
+                            minification: tex_filter,
+                        };
                         // Update texture on render done
                         if let Some(ref mut tex) = *tex_mutex {
-                            tex.set(
-                                colorimage,
-                                egui::TextureFilter::from(&self.state.texture_filter),
-                            );
+                            tex.set(colorimage, tex_opts);
                         } else {
-                            *tex_mutex = Some(ctx.load_texture(
-                                "frame",
-                                colorimage,
-                                egui::TextureFilter::from(&self.state.texture_filter),
-                            ));
+                            *tex_mutex = Some(ctx.load_texture("frame", colorimage, tex_opts));
                         }
 
                         // Update last output once the new frame is rendered
@@ -738,7 +736,7 @@ impl VSPreviewer {
         // Don't allow quit when inputs are still focused
         if !self.any_input_focused() {
             if ui.input().key_pressed(Key::Q) || ui.input().key_pressed(Key::Escape) {
-                frame.quit();
+                frame.close();
             } else if ui.input().key_pressed(Key::I) {
                 self.state.show_gui = !self.state.show_gui;
 
@@ -838,7 +836,7 @@ impl VSPreviewer {
                 let new_file = rfd::FileDialog::new()
                     .set_title("Select a VapourSynth script file")
                     .add_filter("VapourSynth", &["vpy"])
-                    .set_directory(&path)
+                    .set_directory(path)
                     .pick_file();
 
                 if let Some(new_file) = new_file {

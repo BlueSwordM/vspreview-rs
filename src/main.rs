@@ -13,9 +13,9 @@ use app::VSPreviewer;
 use vs_handler::PreviewedScript;
 
 #[derive(Parser, Debug)]
-#[clap(name = env!("CARGO_PKG_NAME"), about = "VapourSynth script previewer", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
+#[command(name = env!("CARGO_PKG_NAME"), about = "VapourSynth script previewer", author = "quietvoid", version = env!("CARGO_PKG_VERSION"))]
 struct Opt {
-    #[clap(name = "input", value_hint = ValueHint::FilePath)]
+    #[arg(id = "input", value_hint = ValueHint::FilePath)]
     input: PathBuf,
 }
 
@@ -33,11 +33,15 @@ fn main() -> Result<()> {
         ..Default::default()
     };
 
-    eframe::run_native(
+    let res = eframe::run_native(
         "vspreview-rs",
         options,
         Box::new(|cc| Box::new(previewer.with_cc(cc))),
     );
+
+    if let Err(e) = res {
+        bail!("Failed starting egui window: {}", e);
+    }
 
     Ok(())
 }
